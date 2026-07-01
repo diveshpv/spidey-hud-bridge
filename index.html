@@ -1,21 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spidey HUD | Spotify Secure Link</title>
+  <style>
+    body { background-color: #000; color: #0f0; font-family: monospace; text-align: center; padding-top: 20vh; }
+  </style>
+</head>
 <body>
+
+  <h2 id="status">SECURING LINK...</h2>
+
   <script>
-    // 1. Paste your ACTUAL Client ID here
+    // --- 1. PASTE YOUR SPOTIFY CLIENT ID HERE ---
     const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
-    // 2. This must match the URI you put in the Spotify Dashboard exactly
-    const redirectUri = 'https://diveshpv.github.io/spidey-hud-bridge/'; 
     
+    // --- 2. PASTE YOUR GITHUB PAGES URL HERE ---
+    const redirectUri = encodeURIComponent('https://diveshpv.github.io/spidey-hud-bridge/'); 
+    // ---------------------------------------------
+
+    const scopes = encodeURIComponent('user-read-currently-playing user-modify-playback-state');
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
 
     if (!code) {
-      window.location.href = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=user-read-currently-playing`;
+      window.location.href = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scopes}`;
     } else {
-      // Once you get the code, show it to the user so they can paste it into the HUD
-      document. body.innerHTML = `<h1>Success!</h1><p>Copy this code and paste it into your Spidey HUD:</p><code>${code}</code>`;
+      document.getElementById('status').innerText = "LINK SECURED. TRANSFERRING TO HUD...";
+      
+      // This automatically bounces the code back to the ESP32!
+      setTimeout(() => {
+        window.location.href = `http://spidey.local/callback?code=${code}`;
+      }, 1000);
     }
   </script>
+
 </body>
 </html>
