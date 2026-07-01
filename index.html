@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <script>
+    // 1. Paste your ACTUAL Client ID here
+    const clientId = 'YOUR_ACTUAL_CLIENT_ID_FROM_SPOTIFY_DASHBOARD'; 
+    // 2. This must match the URI you put in the Spotify Dashboard exactly
+    const redirectUri = 'https://YOUR_GITHUB_USERNAME.github.io/spidey-hud-bridge/'; 
+    
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+
+    if (!code) {
+      window.location.href = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=user-read-currently-playing`;
+    } else {
+      // Once you get the code, show it to the user so they can paste it into the HUD
+      document.body.innerHTML = `<h1>Success!</h1><p>Copy this code and paste it into your Spidey HUD:</p><code>${code}</code>`;
+    }
+  </script>
+</body>
+</html>
