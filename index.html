@@ -1,33 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spidey HUD Auth</title>
-    <style>
-        body {
-            background-color: #000;
-            color: #1DB954;
-            font-family: monospace;
-            text-align: center;
-            padding-top: 50px;
-        }
-    </style>
 </head>
-<body>
+<body style="background:#000; color:#1DB954; font-family:monospace; text-align:center; padding-top:50px;">
     <h2>HUD AUTHORIZED!</h2>
     <p>Transferring keys to Spidey HUD... Please wait.</p>
 
     <script>
-        // Instantly grab the auth code from Spotify
-        const urlParams = new URLSearchParams(window.location.search);
-        const authCode = urlParams.get('code');
-
-        // Immediately fire it back to the Spidey HUD using the local mDNS URL
+        const authCode = new URLSearchParams(window.location.search).get('code');
         if (authCode) {
-            window.location.href = `http://spidey.local/callback?code=${authCode}`;
+            // Instantly bounces the browser back to the HUD over the local network
+            window.location.replace(`http://spidey.local/callback?code=${authCode}`);
         } else {
-            document.body.innerHTML = "<h2 style='color: red;'>ERROR: No code received from Spotify.</h2>";
+            document.body.innerHTML = "<h2 style='color:red;'>ERROR: No code received.</h2>";
         }
     </script>
 </body>
