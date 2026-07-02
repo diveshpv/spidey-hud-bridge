@@ -1,40 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spidey HUD | Spotify Secure Link</title>
-  <style>
-    body { background-color: #000; color: #0f0; font-family: monospace; text-align: center; padding-top: 20vh; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spidey HUD - Setup</title>
+    <style>
+        body {
+            background-color: #050505;
+            color: #1DB954;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: centre;
+            padding-top: 10vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: centre;
+        }
+        h2 { font-size: 24px; color: #ffffff; }
+        p { color: #aaaaaa; max-width: 300px; margin-bottom: 30px; line-height: 1.5; }
+        input {
+            background: #111;
+            border: 2px solid #333;
+            color: #fff;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 8px;
+            text-align: centre;
+            width: 250px;
+            margin-bottom: 20px;
+            outline: none;
+            font-family: monospace;
+        }
+        input:focus { border-color: #1DB954; }
+        button {
+            background-color: #1DB954;
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        button:hover { background-color: #1ed760; }
+        #error-msg { color: #ff4444; display: none; margin-top: 15px; font-weight: bold;}
+    </style>
 </head>
 <body>
 
-  <h2 id="status">SECURING LINK...</h2>
+    <h2>HUD AUTHORIZED</h2>
+    <p>Look at your Spidey HUD screen. Enter the <b>SETUP IP</b> displayed on the device below to complete the connection.</p>
 
-  <script>
-    // --- 1. PASTE YOUR SPOTIFY CLIENT ID HERE ---
-    const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
-    
-    // --- 2. PASTE YOUR GITHUB PAGES URL HERE ---
-    const redirectUri = encodeURIComponent('https://diveshpv.github.io/spidey-hud-bridge/'); 
-    // ---------------------------------------------
+    <input type="text" id="ip-input" placeholder="e.g. 192.168.43.50" autocomplete="off">
+    <button onclick="sendToken()">CONNECT HUD</button>
+    <div id="error-msg">Invalid IP format. Try again.</div>
 
-    const scopes = encodeURIComponent('user-read-currently-playing user-modify-playback-state');
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
+    <script>
+        function sendToken() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const authCode = urlParams.get('code');
+            const ipInput = document.getElementById('ip-input').value.trim();
+            const errorMsg = document.getElementById('error-msg');
 
-    if (!code) {
-      window.location.href = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scopes}`;
-    } else {
-      document.getElementById('status').innerText = "LINK SECURED. TRANSFERRING TO HUD...";
-      
-      // This automatically bounces the code back to the ESP32!
-      setTimeout(() => {
-        window.location.href = `http://spidey.local/callback?code=${code}`;
-      }, 1000);
-    }
-  </script>
+            if (!authCode) {
+                errorMsg.innerText = "Error: Missing Spotify Auth Code. Please restart setup.";
+                errorMsg.style.display = "block";
+                return;
+            }
+
+            // Basic IP validation (allows standard IPs)
+            const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+            if (ipRegex.test(ipInput)) {
+                errorMsg.style.display = "none";
+                // Redirect browser to the HUD's local IP to deliver the code
+                window. location.href = `http://${ipInput}/callback?code=${authCode}`;
+            } else {
+                errorMsg.innerText = "Invalid IP format. Example: 192.168.0.50";
+                errorMsg.style.display = "block";
+            }
+        }
+    </script>
 
 </body>
 </html>
