@@ -5,29 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spidey HUD Auth</title>
     <style>
-        body {
-            background-color: #000;
-            color: #1DB954;
-            font-family: monospace;
-            text-align: centre;
-            padding-top: 50px;
-        }
+        body { background-color: #000; color: #1DB954; font-family: monospace; text-align: center; padding-top: 50px; }
     </style>
 </head>
 <body>
-    <h2>HUD AUTHORIZED!</h2>
-    <p>Transferring keys to Spidey HUD... Please wait.</p>
+    <h2 id="status">AUTHORIZING...</h2>
+    <p id="msg">Contacting Spotify for permission keys.</p>
 
     <script>
-        // Instantly grab the auth code from Spotify
+        // ARCHITECT'S NOTE: The 'scope' is the most critical part. 
+        // Without 'playlist-read-private', the API will return 0 tracks for custom lists.
+        const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
+        const redirectUri = 'https://diveshpv.github.io/spidey-hud-bridge/';
+        const scope = 'user-read-currently-playing user-modify-playback-state user-library-read playlist-read-private playlist-read-collaborative';
+        
         const urlParams = new URLSearchParams(window.location.search);
         const authCode = urlParams.get('code');
+        const error = urlParams.get('error');
 
-        // Immediately fire it back to the Spidey HUD using the local mDNS URL
-        if (authCode) {
+        if (error) {
+            document.getElementById('status').innerText = "ACCESS DENIED";
+            document.getElementById('msg').innerText = "Error: " + error;
+        } else if (authCode) {
+            document.getElementById('msg').innerText = "Transferring keys to Spidey HUD...";
             window.location.href = `http://spidey.local/callback?code=${authCode}`;
         } else {
-            document.body.innerHTML = "<h2 style='color: red;'>ERROR: No code received from Spotify.</h2>";
+            const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+            window.location.href = authUrl;
         }
     </script>
 </body>
