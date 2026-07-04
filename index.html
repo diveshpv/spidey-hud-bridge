@@ -2,35 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spidey HUD Auth</title>
-    <style>
-        body { background-color: #000; color: #1DB954; font-family: monospace; text-align: center; padding-top: 50px; }
-    </style>
+    <style>body { background:#000; color:#1DB954; font-family:monospace; text-align:center; padding-top:50px; }</style>
 </head>
 <body>
     <h2 id="status">AUTHORIZING...</h2>
-    <p id="msg">Contacting Spotify for permission keys.</p>
+    <p id="msg">Finalizing connection...</p>
 
     <script>
-        // 1. CRITICAL: PASTE YOUR ACTUAL CLIENT ID BETWEEN THESE QUOTES
         const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
-        
         const redirectUri = 'https://diveshpv.github.io/spidey-hud-bridge/';
         const scope = 'user-read-currently-playing user-modify-playback-state user-library-read playlist-read-private playlist-read-collaborative';
         
         const urlParams = new URLSearchParams(window.location.search);
         const authCode = urlParams.get('code');
-        const error = urlParams.get('error');
 
-        if (error) {
-            document.getElementById('status').innerText = "ACCESS DENIED";
-            document.getElementById('msg').innerText = "Error: " + error;
-        } else if (authCode) {
-            document.getElementById('msg').innerText = "Transferring keys to Spidey HUD...";
-            window.location.href = `http://spidey.local/callback?code=${authCode}`;
+        if (authCode) {
+            // Redirect back to the ESP32 using the URL the browser is currently at
+            // The browser URL will be: http://<ESP_IP>/callback?code=...
+            window.location.href = window.location.origin + "/callback?code=" + authCode;
         } else {
-            // 2. FIXED: The correct Spotify API Auth Server URL
             const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
             window.location.href = authUrl;
         }
