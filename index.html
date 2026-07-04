@@ -13,9 +13,9 @@
     <p id="msg">Contacting Spotify for permission keys.</p>
 
     <script>
-        // ARCHITECT'S NOTE: The 'scope' is the most critical part. 
-        // Without 'playlist-read-private', the API will return 0 tracks for custom lists.
+        // 1. CRITICAL: PASTE YOUR ACTUAL CLIENT ID BETWEEN THESE QUOTES
         const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
+        
         const redirectUri = 'https://diveshpv.github.io/spidey-hud-bridge/';
         const scope = 'user-read-currently-playing user-modify-playback-state user-library-read playlist-read-private playlist-read-collaborative';
         
@@ -30,6 +30,7 @@
             document.getElementById('msg').innerText = "Transferring keys to Spidey HUD...";
             window.location.href = `http://spidey.local/callback?code=${authCode}`;
         } else {
+            // 2. FIXED: The correct Spotify API Auth Server URL
             const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
             window.location.href = authUrl;
         }
