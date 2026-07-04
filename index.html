@@ -2,60 +2,36 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spidey HUD Auth</title>
-    <style>
-        body { background-color: #000; color: #1DB954; font-family: monospace; text-align: center; padding-top: 50px; }
-        input { background: #222; color: #1DB954; border: 1px solid #1DB954; padding: 10px; font-family: monospace; text-align: center; font-size: 16px; width: 200px; margin-top: 10px; }
-        button { background: #1DB954; color: #000; border: none; padding: 10px 20px; font-family: monospace; font-weight: bold; font-size: 16px; margin-top: 15px; cursor: pointer; }
-        button:hover { background: #1ed760; }
-    </style>
+    <title>Spidey Auth</title>
 </head>
-<body>
-    <h2 id="status">AUTHORIZING...</h2>
-    <div id="container">
-        <p id="msg">Contacting Spotify for permission keys.</p>
-    </div>
+<body style="background:#000; color:#1DB954; font-family:monospace; text-align:center; padding-top:50px;">
+    <h2 id="status">CONNECTING...</h2>
 
     <script>
-        // 1. PASTE YOUR 32-CHARACTER CLIENT ID BELOW
         const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
-        
         const redirectUri = 'https://diveshpv.github.io/spidey-hud-bridge/';
         const scope = 'user-read-currently-playing user-modify-playback-state user-library-read playlist-read-private playlist-read-collaborative';
         
-        const urlParams = new URLSearchParams(window.location.search);
-        const authCode = urlParams.get('code');
-        const error = urlParams.get('error');
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const ip = params.get('ip');
 
-        if (error) {
-            document.getElementById('status').innerText = "ACCESS DENIED";
-            document.getElementById('container').innerHTML = "<p>Error: " + error + "</p>";
-        } else if (authCode) {
-            // STEP 2: The handshake is complete, now forward it to your ESP32
-            document.getElementById('status').innerText = "KEYS RECEIVED";
-            document.getElementById('container').innerHTML = 
-                "<p>Check your Arduino Serial Monitor for the ESP32 IP address.</p>" +
-                "<input type='text' id='espIp' placeholder='e.g., 10.16.180.141'><br>" +
-                "<button onclick='sendToEsp()'>Link to Spidey HUD</button>";
-            
-            // This function uses CONCATENATION to ensure the code is sent correctly
-            window.sendToEsp = function() {
-                const ip = document.getElementById('espIp').value.trim();
-                if (ip) {
-                    const finalUrl = "http://" + ip + "/callback?code=" + authCode;
-                    console.log("Navigating to: " + finalUrl);
-                    window.location.href = finalUrl;
-                } else {
-                    alert("Please enter a valid IP address!");
-                }
+        // Flow 1: Scanning the QR code (contains IP)
+        if (ip) {
+            sessionStorage.setItem('espIp', ip);
+            window.location.href = "https://accounts.spotify.com/authorize?client_id=" + clientId + 
+                                   "&response_type=code&redirect_uri=" + encodeURIComponent(redirectUri) + 
+                                   "&scope=" + encodeURIComponent(scope);
+        } 
+        // Flow 2: Returned from Spotify (contains Code)
+        else if (code) {
+            const savedIp = sessionStorage.getItem('espIp');
+            if (savedIp) {
+                // Seamless redirect back to the ESP32
+                window.location.href = "http://" + savedIp + "/callback?code=" + code;
+            } else {
+                document.getElementById('status').innerText = "ERROR: Scan the QR code on the screen again.";
             }
-        } else {
-            // STEP 1: Redirect to Spotify to get the authorization code
-            const authUrl = "https://accounts.spotify.com/authorize?client_id=" + clientId + 
-                            "&response_type=code&redirect_uri=" + encodeURIComponent(redirectUri) + 
-                            "&scope=" + encodeURIComponent(scope);
-            window.location.href = authUrl;
         }
     </script>
 </body>
