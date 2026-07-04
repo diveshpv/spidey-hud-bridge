@@ -18,7 +18,7 @@
     </div>
 
     <script>
-        // PASTE YOUR 32-CHARACTER CLIENT ID BELOW
+        // 1. PASTE YOUR 32-CHARACTER CLIENT ID BELOW
         const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
         
         const redirectUri = 'https://diveshpv.github.io/spidey-hud-bridge/';
@@ -30,28 +30,31 @@
 
         if (error) {
             document.getElementById('status').innerText = "ACCESS DENIED";
-            document.getElementById('container').innerHTML = `<p>Error: ${error}</p>`;
+            document.getElementById('container').innerHTML = "<p>Error: " + error + "</p>";
         } else if (authCode) {
             // STEP 2: The handshake is complete, now forward it to your ESP32
             document.getElementById('status').innerText = "KEYS RECEIVED";
-            document.getElementById('container').innerHTML = `
-                <p>Check your Arduino Serial Monitor for the ESP32 IP address.</p>
-                <input type="text" id="espIp" placeholder="e.g., 192.168.1.15"><br>
-                <button onclick="sendToEsp()">Link to Spidey HUD</button>
-            `;
+            document.getElementById('container').innerHTML = 
+                "<p>Check your Arduino Serial Monitor for the ESP32 IP address.</p>" +
+                "<input type='text' id='espIp' placeholder='e.g., 10.16.180.141'><br>" +
+                "<button onclick='sendToEsp()'>Link to Spidey HUD</button>";
             
+            // This function uses CONCATENATION to ensure the code is sent correctly
             window.sendToEsp = function() {
                 const ip = document.getElementById('espIp').value.trim();
                 if (ip) {
-                    // This forces the ?code= to be attached to your ESP32 IP
-                    window.location.href = `http://${ip}/callback?code=${authCode}`;
+                    const finalUrl = "http://" + ip + "/callback?code=" + authCode;
+                    console.log("Navigating to: " + finalUrl);
+                    window.location.href = finalUrl;
                 } else {
                     alert("Please enter a valid IP address!");
                 }
             }
         } else {
             // STEP 1: Redirect to Spotify to get the authorization code
-            const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+            const authUrl = "https://accounts.spotify.com/authorize?client_id=" + clientId + 
+                            "&response_type=code&redirect_uri=" + encodeURIComponent(redirectUri) + 
+                            "&scope=" + encodeURIComponent(scope);
             window.location.href = authUrl;
         }
     </script>
