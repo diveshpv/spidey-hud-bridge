@@ -18,6 +18,8 @@
     <script>
         const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
         const redirectUri = 'https://diveshpv.github.io/spidey-hud-bridge/';
+        
+        // These scopes MUST be approved on the Spotify screen
         const scope = 'user-read-currently-playing user-modify-playback-state user-library-read playlist-read-private playlist-read-collaborative';
         
         const params = new URLSearchParams(window.location.search);
@@ -26,25 +28,27 @@
 
         if (ip) {
             sessionStorage.setItem('espIp', ip);
-            document.getElementById('msg').innerText = "Redirecting to Spotify...";
+            document.getElementById('msg').innerText = "Redirecting to Spotify securely...";
+            
+            // THE FIX: Using the official URL and adding '&show_dialog=true' to force the permission screen
             const authUrl = "https://accounts.spotify.com/authorize?client_id=" + clientId + 
                             "&response_type=code&redirect_uri=" + encodeURIComponent(redirectUri) + 
-                            "&scope=" + encodeURIComponent(scope) +
-                            "&show_dialog=true";
+                            "&scope=" + encodeURIComponent(scope) + "&show_dialog=true";
             window.location.href = authUrl;
         } 
         else if (code) {
             const savedIp = sessionStorage.getItem('espIp');
             if (savedIp) {
                 document.getElementById('status').innerText = "AUTHENTICATED";
-                document.getElementById('msg').innerText = "Transferring keys to HUD...";
+                document.getElementById('msg').innerText = "Transferring keys to your Spidey HUD...";
                 window.location.href = "http://" + savedIp + "/callback?code=" + code;
             } else {
                 document.getElementById('status').innerText = "SESSION LOST";
                 document.getElementById('msg').innerText = "Please scan the QR code on your HUD again.";
                 document.getElementById('loading').style.display = 'none';
             }
-        } else {
+        } 
+        else {
             document.getElementById('status').innerText = "AWAITING DEVICE";
             document.getElementById('msg').innerText = "Please scan the QR code on your Spidey HUD screen to begin.";
             document.getElementById('loading').style.display = 'none';
