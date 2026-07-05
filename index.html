@@ -2,36 +2,65 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Spidey Auth</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spidey HUD Connection</title>
+    <style>
+        body { background-color: #000; color: #1DB954; font-family: monospace; text-align: center; padding-top: 50px; }
+        .spinner { margin: 20px auto; width: 40px; height: 40px; border: 4px solid rgba(29, 185, 84, 0.3); border-radius: 50%; border-top-color: #1DB954; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 </head>
-<body style="background:#000; color:#1DB954; font-family:monospace; text-align:center; padding-top:50px;">
-    <h2 id="status">CONNECTING...</h2>
+<body>
+    <h2 id="status">CONNECTING TO HUD...</h2>
+    <div id="loading" class="spinner"></div>
+    <p id="msg">Initializing secure handshake.</p>
 
     <script>
+        // ARCHITECT'S CONFIGURATION
         const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
         const redirectUri = 'https://diveshpv.github.io/spidey-hud-bridge/';
+        
+        // Added 'playlist-read-private' and 'playlist-read-collaborative' to fix the NO TRACKS issue
         const scope = 'user-read-currently-playing user-modify-playback-state user-library-read playlist-read-private playlist-read-collaborative';
         
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
         const ip = params.get('ip');
 
-        // Flow 1: Scanning the QR code (contains IP)
+        // FLOW 1: User just scanned the QR code on the HUD
         if (ip) {
+            // Save the HUD's IP address in the browser's memory
             sessionStorage.setItem('espIp', ip);
-            window.location.href = "https://accounts.spotify.com/authorize?client_id=" + clientId + 
-                                   "&response_type=code&redirect_uri=" + encodeURIComponent(redirectUri) + 
-                                   "&scope=" + encodeURIComponent(scope);
+            document.getElementById('msg').innerText = "Redirecting to Spotify securely...";
+            
+            // Send user to the OFFICIAL Spotify login portal
+            const authUrl = "https://accounts.spotify.com/authorize?client_id=" + clientId + 
+                            "&response_type=code&redirect_uri=" + encodeURIComponent(redirectUri) + 
+                            "&scope=" + encodeURIComponent(scope);
+            window.location.href = authUrl;
         } 
-        // Flow 2: Returned from Spotify (contains Code)
+        // FLOW 2: User successfully logged into Spotify and returned here
         else if (code) {
+            // Retrieve the IP we saved earlier
             const savedIp = sessionStorage.getItem('espIp');
+            
             if (savedIp) {
-                // Seamless redirect back to the ESP32
+                document.getElementById('status').innerText = "AUTHENTICATED";
+                document.getElementById('msg').innerText = "Transferring keys to your Spidey HUD...";
+                
+                // Seamlessly shoot the keys to the ESP32
                 window.location.href = "http://" + savedIp + "/callback?code=" + code;
             } else {
-                document.getElementById('status').innerText = "ERROR: Scan the QR code on the screen again.";
+                document.getElementById('status').innerText = "SESSION LOST";
+                document.getElementById('msg').innerText = "Please scan the QR code on your HUD again.";
+                document.getElementById('loading').style.display = 'none';
             }
+        } 
+        // FLOW 3: Someone just clicked the link without scanning the QR
+        else {
+            document.getElementById('status').innerText = "AWAITING DEVICE";
+            document.getElementById('msg').innerText = "Please scan the QR code on your Spidey HUD screen to begin.";
+            document.getElementById('loading').style.display = 'none';
         }
     </script>
 </body>
