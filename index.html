@@ -16,20 +16,21 @@
     <p id="msg">Initializing secure handshake.</p>
 
     <script>
-        // ARCHITECT'S CONFIGURATION
+        // 1. YOUR EXACT SPOTIFY CREDENTIALS
         const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
         const redirectUri = 'https://diveshpv.github.io/spidey-hud-bridge/';
         
-        // Added 'playlist-read-private' and 'playlist-read-collaborative' to fix the NO TRACKS issue
+        // This exact scope fixes the "NO TRACKS" 403 Playlist error
         const scope = 'user-read-currently-playing user-modify-playback-state user-library-read playlist-read-private playlist-read-collaborative';
         
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
-        const ip = params.get('ip');
+        
+        // EXTRACT IP: Looks for the IP in either the URL parameters or the compressed # hash
+        const ip = params.get('ip') || window.location.hash.substring(1);
 
-        // FLOW 1: User just scanned the QR code on the HUD
+        // FLOW 1: User scanned the Smart QR code on the HUD
         if (ip) {
-            // Save the HUD's IP address in the browser's memory
             sessionStorage.setItem('espIp', ip);
             document.getElementById('msg').innerText = "Redirecting to Spotify securely...";
             
@@ -39,9 +40,8 @@
                             "&scope=" + encodeURIComponent(scope);
             window.location.href = authUrl;
         } 
-        // FLOW 2: User successfully logged into Spotify and returned here
+        // FLOW 2: User successfully logged in and Spotify sent them back here
         else if (code) {
-            // Retrieve the IP we saved earlier
             const savedIp = sessionStorage.getItem('espIp');
             
             if (savedIp) {
@@ -56,7 +56,7 @@
                 document.getElementById('loading').style.display = 'none';
             }
         } 
-        // FLOW 3: Someone just clicked the link without scanning the QR
+        // FLOW 3: Direct link click (No IP provided)
         else {
             document.getElementById('status').innerText = "AWAITING DEVICE";
             document.getElementById('msg').innerText = "Please scan the QR code on your Spidey HUD screen to begin.";
