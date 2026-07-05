@@ -16,50 +16,35 @@
     <p id="msg">Initializing secure handshake.</p>
 
     <script>
-        // 1. YOUR EXACT SPOTIFY CREDENTIALS
         const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
         const redirectUri = 'https://diveshpv.github.io/spidey-hud-bridge/';
-        
-        // This exact scope fixes the "NO TRACKS" 403 Playlist error
         const scope = 'user-read-currently-playing user-modify-playback-state user-library-read playlist-read-private playlist-read-collaborative';
         
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
-        
-        // EXTRACT IP: Looks for the IP in either the URL parameters or the compressed # hash
         const ip = params.get('ip') || window.location.hash.substring(1);
 
-        // FLOW 1: User scanned the Smart QR code on the HUD
         if (ip) {
             sessionStorage.setItem('espIp', ip);
-            document.getElementById('msg').innerText = "Redirecting to Spotify securely...";
-            
-            // Send user to the OFFICIAL Spotify login portal
-            // Change this block in your index.html script:
-const authUrl = "https://accounts.spotify.com/authorize?client_id=" + clientId + 
-                "&response_type=code&redirect_uri=" + encodeURIComponent(redirectUri) + 
-                "&scope=" + encodeURIComponent(scope) + 
-                "&show_dialog=true"; // <--- ADD THIS LINE!
-window.location.href = authUrl;
+            document.getElementById('msg').innerText = "Redirecting to Spotify...";
+            const authUrl = "https://accounts.spotify.com/authorize?client_id=" + clientId + 
+                            "&response_type=code&redirect_uri=" + encodeURIComponent(redirectUri) + 
+                            "&scope=" + encodeURIComponent(scope) +
+                            "&show_dialog=true";
+            window.location.href = authUrl;
         } 
-        // FLOW 2: User successfully logged in and Spotify sent them back here
         else if (code) {
             const savedIp = sessionStorage.getItem('espIp');
-            
             if (savedIp) {
                 document.getElementById('status').innerText = "AUTHENTICATED";
-                document.getElementById('msg').innerText = "Transferring keys to your Spidey HUD...";
-                
-                // Seamlessly shoot the keys to the ESP32
+                document.getElementById('msg').innerText = "Transferring keys to HUD...";
                 window.location.href = "http://" + savedIp + "/callback?code=" + code;
             } else {
                 document.getElementById('status').innerText = "SESSION LOST";
                 document.getElementById('msg').innerText = "Please scan the QR code on your HUD again.";
                 document.getElementById('loading').style.display = 'none';
             }
-        } 
-        // FLOW 3: Direct link click (No IP provided)
-        else {
+        } else {
             document.getElementById('status').innerText = "AWAITING DEVICE";
             document.getElementById('msg').innerText = "Please scan the QR code on your Spidey HUD screen to begin.";
             document.getElementById('loading').style.display = 'none';
