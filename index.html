@@ -3,54 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spidey HUD Connection</title>
+    <title>Spidey HUD Bridge</title>
     <style>
-        body { background-color: #000; color: #1DB954; font-family: monospace; text-align: center; padding-top: 50px; }
-        .spinner { margin: 20px auto; width: 40px; height: 40px; border: 4px solid rgba(29, 185, 84, 0.3); border-radius: 50%; border-top-color: #1DB954; animation: spin 1s ease-in-out infinite; }
+        body { background-color: #05080c; color: #38e1ff; font-family: ui-monospace, monospace; text-align: center; padding: 40px 20px; margin: 0; }
+        .card { max-width: 380px; margin: 0 auto; background: #13161c; border: 1px solid #252a33; border-radius: 10px; padding: 28px 20px; box-shadow: 0 0 24px rgba(56, 225, 255, 0.12); }
+        h2 { margin-top: 0; letter-spacing: 0.08em; font-size: 18px; }
+        p { color: #8791a0; font-size: 14px; line-height: 1.5; }
+        .code-box { font-size: 26px; font-weight: bold; letter-spacing: 0.14em; color: #eef1f5; background: #0a0c10; border: 1px dashed #38e1ff; padding: 14px; border-radius: 8px; margin: 18px 0; }
+        .btn { display: block; width: 100%; background: #ff3b4e; color: #0a0c10; font-family: inherit; font-weight: 700; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; border: none; border-radius: 6px; padding: 14px; cursor: pointer; text-decoration: none; box-sizing: border-box; margin-top: 12px; }
+        .spinner { margin: 24px auto; width: 40px; height: 40px; border: 4px solid rgba(56, 225, 255, 0.2); border-radius: 50%; border-top-color: #38e1ff; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <h2 id="status">CONNECTING TO HUD...</h2>
-    <div id="loading" class="spinner"></div>
-    <p id="msg">Initializing secure handshake.</p>
+    <div class="card">
+        <h2 id="status">CONNECTING TO HUD...</h2>
+        <div id="loading" class="spinner"></div>
+        <div id="codeDisplay" class="code-box" style="display:none;"></div>
+        <p id="msg">Initializing secure PKCE handshake.</p>
+        <button id="actionBtn" class="btn" style="display:none;"></button>
+    </div>
 
     <script>
-        const clientId = '1125aef5fc29462098e46e96ba3cb79f'; 
+        const clientId = '1125aef5fc29462098e46e96ba3cb79f';
         const redirectUri = 'https://diveshpv.github.io/spidey-hud-bridge/';
-        
-        // These scopes MUST be approved on the Spotify screen
         const scope = 'user-read-currently-playing user-modify-playback-state user-library-read playlist-read-private playlist-read-collaborative';
-        
+
+        function base64UrlEncode(buffer) {
+            return btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)))
+                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+\$/, '');
+        }
+
+        async function generatePKCE() {
+            const array = new Uint8Array(32);
+            window.crypto.getRandomValues(array);
+            const verifier = base64UrlEncode(array);
+            const encoder = new TextEncoder();
+            const data = encoder.encode(verifier);
+            const digest = await window.crypto.subtle.digest('SHA-256', data);
+            const challenge = base64UrlEncode(digest);
+            return { verifier, challenge };
+        }
+
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
+        const stateParam = params.get('state');
+        const gcode = params.get('g') || params.get('gcode');
         const ip = params.get('ip') || window.location.hash.substring(1);
 
-        if (ip) {
-            sessionStorage.setItem('espIp', ip);
-            document.getElementById('msg').innerText = "Redirecting to Spotify securely...";
-            
-            // THE FIX: Using the official URL and adding '&show_dialog=true' to force the permission screen
-            const authUrl = "https://accounts.spotify.com/authorize?client_id=" + clientId + 
-                            "&response_type=code&redirect_uri=" + encodeURIComponent(redirectUri) + 
-                            "&scope=" + encodeURIComponent(scope) + "&show_dialog=true";
-            window.location.href = authUrl;
-        } 
-        else if (code) {
-            const savedIp = sessionStorage.getItem('espIp');
-            if (savedIp) {
+        // 1. GOOGLE CALENDAR 1-TAP CODE COPY FLOW
+        if (gcode) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('status').innerText = "GOOGLE CALENDAR PAIR";
+            const codeBox = document.getElementById('codeDisplay');
+            codeBox.style.display = 'block';
+            codeBox.innerText = gcode;
+            document.getElementById('msg').innerText = "Tap below to copy your HUD code and paste it on Google's activation page.";
+            const btn = document.getElementById('actionBtn');
+            btn.style.display = 'block';
+            btn.innerText = "COPY CODE & OPEN GOOGLE";
+            btn.onclick = async () => {
+                try { await navigator.clipboard.writeText(gcode); } catch (e) {}
+                btn.innerText = "COPIED! OPENING GOOGLE...";
+                setTimeout(() => { window.location.href = "https://www.google.com/device"; }, 350);
+            };
+        }
+        // 2. SPOTIFY STEP 1: GENERATE PKCE & REDIRECT TO SPOTIFY
+        else if (ip) {
+            (async () => {
+                const pkce = await generatePKCE();
+                // Pack IP + PKCE verifier inside OAuth state so session is never lost across browsers
+                const statePayload = encodeURIComponent(ip + "|" + pkce.verifier);
+                document.getElementById('msg').innerText = "Redirecting to Spotify securely...";
+                const authUrl = "https://accounts.spotify.com/authorize?client_id=" + clientId +
+                                "&response_type=code" +
+                                "&redirect_uri=" + encodeURIComponent(redirectUri) +
+                                "&code_challenge_method=S256" +
+                                "&code_challenge=" + pkce.challenge +
+                                "&state=" + statePayload +
+                                "&scope=" + encodeURIComponent(scope);
+                window.location.href = authUrl;
+            })();
+        }
+        // 3. SPOTIFY STEP 2: EXCHANGE PKCE TOKEN & SEND TO ESP32
+        else if (code && stateParam) {
+            (async () => {
+                const parts = decodeURIComponent(stateParam).split('|');
+                const savedIp = parts[0];
+                const verifier = parts[1] || "";
+
                 document.getElementById('status').innerText = "AUTHENTICATED";
-                document.getElementById('msg').innerText = "Transferring keys to your Spidey HUD...";
-                window.location.href = "http://" + savedIp + "/callback?code=" + code;
-            } else {
-                document.getElementById('status').innerText = "SESSION LOST";
-                document.getElementById('msg').innerText = "Please scan the QR code on your HUD again.";
-                document.getElementById('loading').style.display = 'none';
-            }
-        } 
+                document.getElementById('msg').innerText = "Securing token & linking to your Spidey HUD...";
+
+                try {
+                    const body = new URLSearchParams({
+                        client_id: clientId,
+                        grant_type: 'authorization_code',
+                        code: code,
+                        redirect_uri: redirectUri,
+                        code_verifier: verifier
+                    });
+                    const resp = await fetch('https://accounts.spotify.com/api/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        window.location.href = "http://" + savedIp + "/callback?r=" + encodeURIComponent(data.refresh_token) +
+                                               "&a=" + encodeURIComponent(data.access_token) +
+                                               "&e=" + (data.expires_in || 3600);
+                        return;
+                    }
+                } catch (err) {
+                    // Fallback: let ESP32 perform the PKCE exchange directly
+                }
+                window.location.href = "http://" + savedIp + "/callback?code=" + encodeURIComponent(code) +
+                                       "&v=" + encodeURIComponent(verifier);
+            })();
+        }
         else {
             document.getElementById('status').innerText = "AWAITING DEVICE";
-            document.getElementById('msg').innerText = "Please scan the QR code on your Spidey HUD screen to begin.";
+            document.getElementById('msg').innerText = "Scan the QR code on your Spidey HUD screen to begin.";
             document.getElementById('loading').style.display = 'none';
         }
     </script>
